@@ -636,8 +636,17 @@ if current_sid not in st.session_state.sessions:
 current_chat = st.session_state.sessions[current_sid]
 current_chat_history = current_chat["chat_history"]
 
+# Automatic startup embedding and indexing
+if active_hf_token and not os.path.exists("faiss_index") and os.path.exists("docs"):
+    pdf_files = [f for f in os.listdir("docs") if f.lower().endswith('.pdf')]
+    if pdf_files:
+        st.info("Vector database not found. Automatically running embedding and indexing process...")
+        if trigger_ingestion(active_hf_token):
+            st.rerun()
+
 # Database setup check
 vector_db = load_vector_store(active_hf_token)
+
 
 # ----------------- SIDEBAR -----------------
 # ----------------- SIDEBAR -----------------

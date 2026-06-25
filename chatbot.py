@@ -63,9 +63,19 @@ DB_FAISS_PATH = 'faiss_index'
 def load_rag_chain():
     # 1. Load FAISS index
     if not os.path.exists(DB_FAISS_PATH):
-        print(f"Error: Vector store index '{DB_FAISS_PATH}' not found.")
-        print("Please run the ingestion script first: python ingest.py")
-        sys.exit(1)
+        if os.path.exists("docs") and any(f.lower().endswith('.pdf') for f in os.listdir("docs")):
+            print("Vector store index not found. Automatically running ingestion...")
+            from ingest import run_ingestion
+            try:
+                run_ingestion()
+            except Exception as e:
+                print(f"Error running automatic ingestion: {e}")
+                sys.exit(1)
+        else:
+            print(f"Error: Vector store index '{DB_FAISS_PATH}' not found and no PDFs in docs/ to index.")
+            print("Please add PDFs to the docs/ directory and run: python ingest.py")
+            sys.exit(1)
+
         
     print("Loading HuggingFace Endpoint Embeddings model...")
     embeddings = HuggingFaceEndpointEmbeddings(
