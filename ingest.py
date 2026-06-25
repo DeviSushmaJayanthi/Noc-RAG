@@ -38,9 +38,15 @@ def run_ingestion():
     # Verify Hugging Face Token is set
     hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN")
     if not hf_token:
-        print("Error: HUGGINGFACEHUB_API_TOKEN (or HF_TOKEN) is not set in environment.")
-        print("Please add it to your '.env' file. You can get a free token at https://huggingface.co/settings/tokens")
-        sys.exit(1)
+        print("HUGGINGFACEHUB_API_TOKEN (or HF_TOKEN) is not set in environment.")
+        import getpass
+        hf_token = getpass.getpass("Please enter your HuggingFace Hub API token (typing is hidden): ").strip()
+        if not hf_token:
+            print("Error: No HuggingFace token provided. Ingestion cannot proceed.")
+            sys.exit(1)
+        os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_token
+        os.environ["HF_TOKEN"] = hf_token
+
 
     if not os.path.exists(DOCS_DIR):
         print(f"Error: Directory '{DOCS_DIR}' not found. Please create it and add PDFs.")

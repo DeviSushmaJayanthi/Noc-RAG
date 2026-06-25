@@ -22,6 +22,7 @@ for sub in ['nn', 'cuda', 'distributed', 'multiprocessing', 'autograd', 'optim']
     sys.modules[f'torch.{sub}'] = MockModule(f'torch.{sub}')
 
 import os
+import getpass
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -29,15 +30,25 @@ load_dotenv()
 
 # Verify API keys
 gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN")
-
 if not gemini_key:
-    print("Warning: Neither GEMINI_API_KEY nor GOOGLE_API_KEY found in environment variables.")
-    print("Please set your Gemini API key in a '.env' file. Example: GEMINI_API_KEY=AIzaSy...")
+    print("Neither GEMINI_API_KEY nor GOOGLE_API_KEY found in environment variables.")
+    gemini_key = getpass.getpass("Please enter your Gemini API key (typing is hidden): ").strip()
+    if gemini_key:
+        os.environ["GEMINI_API_KEY"] = gemini_key
+        os.environ["GOOGLE_API_KEY"] = gemini_key
+    else:
+        print("Warning: No Gemini API key provided. Chatbot execution may fail.")
 
+hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN")
 if not hf_token:
-    print("Warning: Neither HUGGINGFACEHUB_API_TOKEN nor HF_TOKEN found in environment variables.")
-    print("Please set your HuggingFace Hub API Token in a '.env' file. Example: HUGGINGFACEHUB_API_TOKEN=hf_...")
+    print("Neither HUGGINGFACEHUB_API_TOKEN nor HF_TOKEN found in environment variables.")
+    hf_token = getpass.getpass("Please enter your HuggingFace Hub API token (typing is hidden): ").strip()
+    if hf_token:
+        os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_token
+        os.environ["HF_TOKEN"] = hf_token
+    else:
+        print("Warning: No HuggingFace token provided. Chatbot execution may fail.")
+
 
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEndpointEmbeddings

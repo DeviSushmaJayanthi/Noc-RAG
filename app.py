@@ -37,6 +37,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize session state for user-entered keys if not already present
+if "user_gemini_key" not in st.session_state:
+    st.session_state.user_gemini_key = ""
+if "user_hf_token" not in st.session_state:
+    st.session_state.user_hf_token = ""
+
+
 # Custom CSS for Premium Look & Feel (Modern dark mode, glowing elements, custom scrollbars, glassmorphism)
 st.markdown("""
 <style>
@@ -407,8 +414,13 @@ section[data-testid="stSidebar"] div[data-testid="column"]:last-child button:hov
 """, unsafe_allow_html=True)
 
 # ----------------- ENVIRONMENT VARIABLES -----------------
-active_gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-active_hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN")
+# Keep track of keys defined in the environment (e.g. .env file)
+env_gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+env_hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN")
+
+# Fallback to session state if environment variables are not set
+active_gemini_key = env_gemini_key or st.session_state.user_gemini_key
+active_hf_token = env_hf_token or st.session_state.user_hf_token
 
 if active_gemini_key:
     os.environ["GOOGLE_API_KEY"] = active_gemini_key
@@ -417,6 +429,7 @@ if active_gemini_key:
 if active_hf_token:
     os.environ["HUGGINGFACEHUB_API_TOKEN"] = active_hf_token
     os.environ["HF_TOKEN"] = active_hf_token
+
 
 # ----------------- CACHED RESOURCES -----------------
 @st.cache_resource
@@ -710,28 +723,88 @@ if os.path.exists("docs"):
     else:
         st.sidebar.markdown("*No documents uploaded yet.*")
 
+# API Configuration section in sidebar
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔑 API Configuration")
+
+# Gemini Key Input
+if env_gemini_key:
+    st.sidebar.success("✅ Gemini API Key: Loaded from environment")
+else:
+    gemini_val = st.sidebar.text_input(
+        "Gemini API Key",
+        value=st.session_state.user_gemini_key,
+        type="password",
+        placeholder="Enter Gemini API Key...",
+        key="sidebar_gemini_key"
+    )
+    if gemini_val != st.session_state.user_gemini_key:
+        st.session_state.user_gemini_key = gemini_val
+        st.rerun()
+
+# HuggingFace Token Input
+if env_hf_token:
+    st.sidebar.success("✅ HuggingFace Token: Loaded from environment")
+else:
+    hf_val = st.sidebar.text_input(
+        "HuggingFace Token",
+        value=st.session_state.user_hf_token,
+        type="password",
+        placeholder="Enter HuggingFace Token...",
+        key="sidebar_hf_token"
+    )
+    if hf_val != st.session_state.user_hf_token:
+        st.session_state.user_hf_token = hf_val
+        st.rerun()
+
 # ----------------- MAIN UI -----------------
 st.markdown("<div class='gradient-title'>🧠 NOC RAG Bot</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>A premium retrieval-augmented assistant for Network Operations Center (NOC) documentation. Powered by FAISS & Gemini.</div>", unsafe_allow_html=True)
 
-# Show warnings if configuration is incomplete
+# Show setup inputs on main page if configuration is incomplete
 if not active_hf_token or not active_gemini_key:
-    missing = []
-    if not active_gemini_key:
-        missing.append("Gemini API Key (`GEMINI_API_KEY`)")
-    if not active_hf_token:
-        missing.append("HuggingFace Hub Token (`HUGGINGFACEHUB_API_TOKEN`)")
-    
-    st.markdown(f"""
+    st.markdown("""
     <div class='glass-panel'>
-        <h3 style='margin-top: 0; color: #ef4444;'>⚠️ Missing Environment Configuration</h3>
-        <p style='color: #94a3b8;'>The following configuration is missing from your <code>.env</code> file:</p>
-        <ul style='color: #cbd5e1; line-height: 1.6;'>
-            {" ".join([f"<li><strong>{m}</strong></li>" for m in missing])}
-        </ul>
-        <p style='margin-bottom: 0; color: #94a3b8;'>Please configure these variables in the <code>.env</code> file in your project workspace and restart the application.</p>
+        <h3 style='margin-top: 0; color: #ef4444;'>🔑 API Configuration Required</h3>
+        <p style='color: #94a3b8;'>To start using the <strong>NOC RAG Bot</strong>, please provide the missing API keys below. 
+        These keys are required for cloud-based embeddings (HuggingFace) and reasoning (Gemini). They will be held in session memory for this run.</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Render neat columns for inputs on the main page
+    col1, col2 = st.columns(2)
+    with col1:
+        if env_gemini_key:
+            st.success("✅ Gemini API Key loaded from environment.")
+        else:
+            gemini_main = st.text_input(
+                "Gemini API Key",
+                value=st.session_state.user_gemini_key,
+                type="password",
+                placeholder="AIzaSy...",
+                help="Google Gemini API Key (e.g. from Google AI Studio)",
+                key="main_gemini_key"
+            )
+            if gemini_main != st.session_state.user_gemini_key:
+                st.session_state.user_gemini_key = gemini_main
+                st.rerun()
+                
+    with col2:
+        if env_hf_token:
+            st.success("✅ HuggingFace Token loaded from environment.")
+        else:
+            hf_main = st.text_input(
+                "HuggingFace Hub Token",
+                value=st.session_state.user_hf_token,
+                type="password",
+                placeholder="hf_...",
+                help="HuggingFace Hub API token with read permissions",
+                key="main_hf_token"
+            )
+            if hf_main != st.session_state.user_hf_token:
+                st.session_state.user_hf_token = hf_main
+                st.rerun()
+
 
 elif vector_db is None:
     st.markdown("""
