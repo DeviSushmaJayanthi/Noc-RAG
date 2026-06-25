@@ -523,7 +523,7 @@ def get_rag_chain(hf_token, gemini_key):
     retriever = vector_db.as_retriever(search_kwargs={"k": 4})
     
     # 2. Setup Gemini LLM
-    llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0.2)
+    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", temperature=0.2)
     
     # 3. Create query contextualization prompt
     contextualize_q_system_prompt = (
